@@ -13,6 +13,9 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Created by Marco Picone (picone.m@gmail.com) 20/03/2020
  * Simple Activity and application to show how to use Google Maps API and UI components
@@ -23,25 +26,20 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private GoogleMap mMap;
 
-    private MarkerOptions myMarkerOptions = null;
-    private Marker myMarker = null;
+    private Map<Marker, PoiDescriptor> poiMap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_maps);
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        PoiDescriptor pA = new PoiDescriptor(44.72, 10.21);
-        PoiDescriptor pB = new PoiDescriptor(44.76, 10.22);
-
-        if(pA == pB)
-            Log.d(TAG, "UGUALI !");
-        else
-            Log.d(TAG, "DIVERSI");
-
+        //Init Map to keep track of Marker and PoiDescriptor Classes
+        this.poiMap = new HashMap<>();
     }
 
 
@@ -57,50 +55,24 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-
         initMap();
-
-        /*
-        // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
-        */
+        initWithSimpleMarkerList();
     }
 
     private void initMap(){
-
         if(mMap != null)
         {
             //Create a geographic point starting from latitude and longitude coordinate
-            LatLng parmaUniversity = new LatLng(44.76516282282244,10.311720371246338);
+            LatLng mapCenter = new LatLng(44.76516282282244,10.311720371246338);
 
             //Enable or disable user location layer
             //mMap.setMyLocationEnabled(true);
 
             //Move the map to a specific point
-            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(parmaUniversity, 13));
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mapCenter, 13));
 
             //Change map Type
             //mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
-
-            //Create new marker options
-            myMarkerOptions = new MarkerOptions();
-            myMarkerOptions.title("Unipr - 1");
-            myMarkerOptions.snippet("Universita' degli Studi di Parma - Facolta' di Ingegneria Sede Didattica");
-            myMarkerOptions.position(parmaUniversity);
-
-            //Change the default icon using a drawable resource
-            myMarkerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_location_place));
-
-            //Example about how to use a default marker with a different color
-            //myMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
-
-            //Add the marker to the Map and return the created marker object
-            myMarker = mMap.addMarker(myMarkerOptions);
-
-            //The same kind of marker definition and add operation in one line
-            //map.addMarker(new MarkerOptions().title("Unipr - A").snippet("Universita' degli Studi di Parma - Facolta' di Ingegneria Sede Didattica").position(parmaUniversity));
 
             //Create and Assign the listener for onClick event on the Map
             mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
@@ -127,8 +99,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 @Override
                 public boolean onMarkerClick(Marker marker) {
 
-                    if (myMarker != null && marker.equals(myMarker))
-                        Log.d(TAG, "MainActivity ---> onInfoWindowClick of MyMarker");
+                    if (marker != null && poiMap.containsKey(marker)) {
+                        PoiDescriptor myPoiDescriptor = poiMap.get(marker);
+                        Log.d(TAG, "MainActivity ---> onMarkerClick of PoiDescriptor: " + myPoiDescriptor.getName());
+                    }
 
                     //True if we want that the event has been consumed or false to propagate it
                     return false;
@@ -140,11 +114,50 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 @Override
                 public void onInfoWindowClick(Marker marker) {
-                    if (myMarker != null && marker.equals(myMarker))
-                        Log.d(TAG, "MainActivity ---> onInfoWindowClickListener of MyMarker");
+
+                    if (marker != null && poiMap.containsKey(marker)) {
+                        PoiDescriptor myPoiDescriptor = poiMap.get(marker);
+                        Log.d(TAG, "MainActivity ---> onInfoWindowClickListener of PoiDescriptor: " + myPoiDescriptor.getName());
+                    }
+
                 }
             });
         }
+    }
 
+    private void initWithSimpleMarkerList(){
+
+        if(mMap != null)
+        {
+            //Create a geographic point starting from latitude and longitude coordinate
+            PoiDescriptor poiUniprEngClassrooms = new PoiDescriptor("Engineering Classrooms", "Unipr Engineering Classrooms", 44.765138, 10.312608);
+            PoiDescriptor poiUniprEngLaboratories = new PoiDescriptor("Engineering Laboratories", "Unipr Engineering Laboratories",44.764843, 10.307982);
+
+            addPoiToMap(poiUniprEngClassrooms);
+            addPoiToMap(poiUniprEngLaboratories);
+        }
+
+    }
+
+    private void addPoiToMap(PoiDescriptor poiDescriptor){
+
+        if (poiDescriptor != null) {
+
+            //Create new marker options
+            MarkerOptions markerOptions = new MarkerOptions();
+            markerOptions.title(poiDescriptor.getName());
+            markerOptions.snippet(poiDescriptor.getDescription());
+            markerOptions.position(new LatLng(poiDescriptor.getLat(), poiDescriptor.getLng()));
+
+            //Change the default icon using a drawable resource
+            markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_location_place));
+
+            //Example about how to use a default marker with a different color
+            //myMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
+
+            //Add the marker to the Map and return the created marker object
+            Marker marker = mMap.addMarker(markerOptions);
+            this.poiMap.put(marker, poiDescriptor);
+        }
     }
 }
